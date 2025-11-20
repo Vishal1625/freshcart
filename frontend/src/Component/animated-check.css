@@ -1,0 +1,5 @@
+.check-wrapper { display:flex; justify-content:center; align-items:center; margin:20px 0; }
+.checkmark { width:120px; height:120px; stroke: #28a745; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+.checkmark__circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 3; animation: stroke 0.6s cubic-bezier(.65,.0,.45,1) forwards; fill: none; }
+.checkmark__check { stroke-dasharray: 48; stroke-dashoffset: 48; animation: stroke 0.3s 0.6s cubic-bezier(.65,.0,.45,1) forwards; }
+@keyframes stroke { to { stroke-dashoffset: 0; } }

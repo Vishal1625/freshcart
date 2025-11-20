@@ -1,0 +1,16 @@
+.order-success-icon {
+  width: 110px;
+  margin-bottom: 15px;
+}
+
+.card {
+  border-radius: 12px;
+}
+
+.btn {
+  border-radius: 30px;
+}
+.btn-primary {
+  background-color: #28a745;
+  border-color: #28a745;
+}

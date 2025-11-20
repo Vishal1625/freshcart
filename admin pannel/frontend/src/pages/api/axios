@@ -1,0 +1,50 @@
+import axios from "axios";
+
+
+const api = axios.create({
+    baseURL: "http://localhost:5000",
+});
+
+
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+    failedQueue.forEach(prom => (error ? prom.reject(error) : prom.resolve(token)));
+    failedQueue = [];
+};
+
+api.interceptors.response.use(
+    res => res,
+    async err => {
+        const originalRequest = err.config;
+        if (err.response?.status === 401 && !originalRequest._retry) {
+            if (isRefreshing) {
+                return new Promise(function (resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                }).then(token => {
+                    originalRequest.headers["Authorization"] = "Bearer " + token;
+                    return api(originalRequest);
+                });
+            }
+            originalRequest._retry = true;
+            isRefreshing = true;
+            try {
+                const r = await api.post("/auth/refresh");
+                const token = r.data.token;
+                api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+                originalRequest.headers["Authorization"] = `Bearer ${token}`;
+                processQueue(null, token);
+                return api(originalRequest);
+            } catch (e) {
+                processQueue(e, null);
+                throw e;
+            } finally {
+                isRefreshing = false;
+            }
+        }
+        throw err;
+    }
+);
+
+export default api;

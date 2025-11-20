@@ -1,0 +1,11 @@
+import api from "../api/axios";
+
+export const logout = async () => {
+    try {
+        await api.post("/auth/logout");
+    } catch (e) { /* ignore */ }
+    localStorage.removeItem("token");
+    localStorage.removeItem("authUser");
+    delete api.defaults.headers.common["Authorization"];
+    window.location.href = "/login";
+};
