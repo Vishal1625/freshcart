@@ -64,10 +64,10 @@ export const sendOrderEmail = async (user, order) => {
       <p>We will notify you once your order is out for delivery 🚚</p>
     `;
 
-    await transporter.sendMail({
+    await transporter.sendEmail({
       from: process.env.OWNER_EMAIL,
       to: [user.email, process.env.OWNER_EMAIL], // customer + owner
-      subject: "Your WoofIT Order Confirmation",
+      subject: "Your freshcart Order Confirmation",
       html: htmlContent,
     });
 
@@ -79,4 +79,3 @@ export const sendOrderEmail = async (user, order) => {
 /* ============================================================
    DEFAULT EXPORT
 ============================================================ */
-export default sendEmail;

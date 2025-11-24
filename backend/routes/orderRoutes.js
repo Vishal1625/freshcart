@@ -1,10 +1,34 @@
+
+// backend/routes/orderRoutes.js
 import express from "express";
-import shortid from "shortid";
 import Order from "../models/Order.js";
+import DeliveryAgent from "../models/DeliveryAgent.js";
+import authDelivery from "../middleware/authDelivery.js";
+
+import { auth, isAdmin, isDelivery } from "../middleware/auth.js";
+
+
+import shortid from "shortid";
+
 import { generateInvoicePdf } from "../utils/invoiceGenerator.js";
 import { sendOrderEmail } from "../utils/mailer.js";
 
+
+
+
 const router = express.Router();
+router.post("/delivery/location", authDelivery, async (req, res) => {
+  const { lat, lng } = req.body;
+
+  if (!lat || !lng) {
+    return res.status(400).json({ message: "Location missing" });
+  }
+
+  req.delivery.currentLocation = { lat, lng };
+  await req.delivery.save();
+
+  res.json({ message: "Location updated" });
+});
 
 /* ------------------------------
    CREATE NEW ORDER
@@ -279,6 +303,177 @@ router.post("/send-confirmation-email", async (req, res) => {
     console.log(err);
     res.status(500).json({ success: false });
   }
+});
+
+// ORDER TRACKING ENDPOINT
+router.get("/track/:orderId", async (req, res) => {
+  try {
+    const order = await Order.findOne({ orderId: req.params.orderId })
+      .populate("deliveryAgent", "name")
+      .lean();
+
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    res.json({
+      orderId: order.orderId,
+      status: order.status,
+      timeline: order.timeline,
+      deliveryAgent: order.deliveryAgent,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Track error" });
+  }
+});
+
+// ADMIN: assign delivery agent
+router.post("/:id/assign-delivery", auth, isAdmin, async (req, res) => {
+  const { deliveryAgentId } = req.body;
+  const order = await Order.findByIdAndUpdate(
+    req.params.id,
+    { deliveryAgent: deliveryAgentId },
+    { new: true }
+  );
+
+  await DeliveryAgent.findByIdAndUpdate(deliveryAgentId, {
+    $addToSet: { assignedOrders: order._id },
+  });
+
+  res.json({ success: true, order });
+});
+
+// DELIVERY BOY: update location
+router.post("/delivery/location", auth, isDelivery, async (req, res) => {
+  const { lat, lng } = req.body;
+
+  await DeliveryAgent.findOneAndUpdate(
+    { userId: req.user._id },
+    {
+      currentLocation: {
+        lat,
+        lng,
+        updatedAt: new Date(),
+      },
+    }
+  );
+
+  res.json({ success: true });
+});
+
+// DELIVERY BOY: orders assigned to him
+router.get("/delivery/my-orders", auth, isDelivery, async (req, res) => {
+  const agent = await DeliveryAgent.findOne({ userId: req.user._id }).populate(
+    "assignedOrders"
+  );
+
+  res.json({ orders: agent?.assignedOrders || [] });
+});
+// PUT /api/orders/delivery/update-status
+router.put("/delivery/update-status", async (req, res) => {
+  try {
+    const { orderId, status } = req.body;
+
+    const order = await Order.findOne({ orderId });
+    if (!order) return res.json({ success: false, msg: "Order not found" });
+
+    order.status = status;
+
+    if (status === "Delivered") {
+      order.deliveredDate = new Date();
+    }
+
+    await order.save();
+
+    res.json({ success: true, msg: "Status updated", order });
+  } catch (e) {
+    res.json({ success: false, msg: "Error", error: e });
+  }
+});
+router.post("/delivery/location", authDelivery, async (req, res) => {
+  try {
+    const deliveryBoyId = req.user.id;
+    const { lat, lng } = req.body;
+
+    if (!lat || !lng) {
+      return res.json({ success: false, msg: "Lat/Lng missing" });
+    }
+
+    await DeliveryBoy.updateOne(
+      { _id: deliveryBoyId },
+      { $set: { liveLocation: { lat, lng, updatedAt: Date.now() } } }
+    );
+
+    res.json({ success: true, msg: "Location updated" });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+router.get("/delivery/my-orders", authDelivery, async (req, res) => {
+  try {
+    const orders = await Order.find({
+      deliveryBoy: req.user.id
+    });
+
+    res.json({ success: true, orders });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+router.put("/delivery/update-status", authDelivery, async (req, res) => {
+  try {
+    const { orderId, status } = req.body;
+
+    if (!orderId || !status) {
+      return res.json({ success: false, msg: "Missing fields" });
+    }
+
+    const order = await Order.findOne({ orderId });
+
+    if (!order) return res.json({ success: false, msg: "Order not found" });
+
+    if (order.deliveryBoy.toString() !== req.user.id) {
+      return res.json({ success: false, msg: "Unauthorized" });
+    }
+
+    order.status = status;
+    await order.save();
+
+    res.json({ success: true, msg: "Status updated", order });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+router.get("/track/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findOne({ orderId })
+      .populate("deliveryBoy", "liveLocation name phone");
+
+    if (!order) {
+      return res.json({ success: false, msg: "Order not found" });
+    }
+
+    if (!order.deliveryBoy?.liveLocation) {
+      return res.json({ success: false, msg: "Live location not updated yet" });
+    }
+
+    res.json({
+      success: true,
+      deliveryBoy: {
+        name: order.deliveryBoy.name,
+        phone: order.deliveryBoy.phone,
+        location: order.deliveryBoy.liveLocation
+      }
+    });
+  } catch (e) {
+    res.json({ success: false, error: e.message });
+  }
+});
+router.get("/analytics/heatmap", auth, isAdmin, async (req, res) => {
+  // logic here
+});
+
+router.get("/analytics/top-cities", auth, isAdmin, async (req, res) => {
+  // logic here
 });
 
 export default router;

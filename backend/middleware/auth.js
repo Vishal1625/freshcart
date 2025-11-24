@@ -24,3 +24,34 @@ export const authorize = (roles = []) => {
     next();
   };
 };
+// backend/middleware/auth.js
+
+
+export const auth = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) return res.status(401).json({ error: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret123");
+    const user = await User.findById(decoded.id);
+
+    if (!user) return res.status(401).json({ error: "User not found" });
+
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+};
+
+export const isAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin")
+    return res.status(403).json({ error: "Admin only" });
+  next();
+};
+
+export const isDelivery = (req, res, next) => {
+  if (req.user?.role !== "delivery")
+    return res.status(403).json({ error: "Delivery only" });
+  next();
+};

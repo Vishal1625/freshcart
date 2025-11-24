@@ -1,10 +1,6 @@
-
-
 import React, { useEffect, useState } from "react";
 import { MagnifyingGlass } from "react-loader-spinner";
-import assortment from "../../images/assortment-citrus-fruits.png";
 import { Link } from "react-router-dom";
-import "@fortawesome/fontawesome-free/css/all.min.css";
 import axios from "axios";
 import ScrollToTop from "../ScrollToTop";
 
@@ -15,6 +11,9 @@ function Dropdown() {
   const [loaderStatus, setLoaderStatus] = useState(true);
   const [products, setProducts] = useState([]);
 
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  // ⭐ TOGGLE SIDEBAR CATEGORY DROPDOWN
   const toggleDropdown = (index) => {
     setOpenDropdowns((prev) =>
       prev.includes(index)
@@ -23,12 +22,11 @@ function Dropdown() {
     );
   };
 
-  // Loader
   useEffect(() => {
     setTimeout(() => setLoaderStatus(false), 1200);
   }, []);
 
-  // FIXED IMAGE PATH
+  // ⭐ PRODUCT IMAGE HANDLER
   const getImage = (img) => {
     if (!img) return "";
     return img.startsWith("http")
@@ -36,15 +34,15 @@ function Dropdown() {
       : `http://localhost:5000${img}`;
   };
 
-  // Fetch products by category
+  // ⭐ FETCH PRODUCTS FROM BACKEND
   const fetchFilteredProducts = async () => {
     try {
       const res = await axios.get("/api/products", {
         params: {
+          category: selectedCategory,
           search: "",
-          category: "Snacks & Munchies",
           page: 1,
-          limit: 20,
+          limit: 30,
         },
       });
 
@@ -54,21 +52,39 @@ function Dropdown() {
     }
   };
 
+  // ⭐ AUTO FETCH WHEN CATEGORY CHANGES
   useEffect(() => {
-    fetchFilteredProducts();
-  }, []);
+    if (selectedCategory) {
+      fetchFilteredProducts();
+    }
+  }, [selectedCategory]);
+
+  // ⭐ CART FUNCTIONS
+  const addToCart = (product) => {
+    let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    const exist = cart.find((item) => item._id === product._id);
+
+    if (exist) {
+      exist.qty += 1;
+    } else {
+      cart.push({ ...product, qty: 1 });
+    }
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+    alert("Added to Cart!");
+  };
+
+  const buyNow = (product) => {
+    localStorage.setItem("buyNowProduct", JSON.stringify(product));
+    window.location.href = "/checkout";
+  };
 
   return (
     <div>
       {loaderStatus ? (
         <div className="loader-container">
-          <MagnifyingGlass
-            visible={true}
-            height="100"
-            width="100"
-            glassColor="#c0efff"
-            color="#0aad0a"
-          />
+          <MagnifyingGlass visible height="100" width="100" color="#0aad0a" />
         </div>
       ) : (
         <>
@@ -77,31 +93,32 @@ function Dropdown() {
           <div className="container">
             <div className="row">
 
-              {/* ------- LEFT SIDEBAR ------- */}
-              <h5 className="mb-3 mt-4">Categories</h5>
-
+              {/* LEFT SIDEBAR */}
               <div className="col-md-3">
+                <h5 className="mb-3 mt-4">Categories</h5>
+
                 {dropdownData.map((dropdown, index) => (
                   <ul className="nav flex-column" key={index}>
                     <li className="nav-item">
-                      <Link
-                        className="nav-link"
-                        to="#"
+                      <button
+                        className="nav-link btn btn-link"
                         onClick={() => toggleDropdown(index)}
                       >
                         {dropdown.title} <i className="fa fa-chevron-down" />
-                      </Link>
+                      </button>
 
                       <div
-                        className={`collapse ${openDropdowns.includes(index) ? "show" : ""
-                          }`}
+                        className={`collapse ${openDropdowns.includes(index) ? "show" : ""}`}
                       >
                         <ul className="nav flex-column ms-3">
                           {dropdown.items.map((item, itemIndex) => (
                             <li className="nav-item" key={itemIndex}>
-                              <Link className="nav-link" to="#">
+                              <button
+                                className="nav-link btn btn-link"
+                                onClick={() => setSelectedCategory(item)}
+                              >
                                 {item}
-                              </Link>
+                              </button>
                             </li>
                           ))}
                         </ul>
@@ -109,62 +126,13 @@ function Dropdown() {
                     </li>
                   </ul>
                 ))}
-
-                {/* Store Filters */}
-                <div className="py-4">
-                  <h5 className="mb-3">Stores</h5>
-                  <input
-                    type="search"
-                    className="form-control mb-3"
-                    placeholder="Search by store"
-                  />
-
-                  {[
-                    "E-Grocery",
-                    "DealShare",
-                    "DMart",
-                    "Blinkit",
-                    "BigBasket",
-                    "StoreFront",
-                    "Spencers",
-                    "Online Grocery",
-                  ].map((store, idx) => (
-                    <div className="form-check mb-2" key={idx}>
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id={store}
-                        defaultChecked={idx === 0}
-                      />
-                      <label className="form-check-label" htmlFor={store}>
-                        {store}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Banner */}
-                <div className="py-4 position-relative">
-                  <div className="position-absolute p-4">
-                    <h3 className="mb-0">Fresh Fruits</h3>
-                    <p>Get Upto 25% Off</p>
-                    <Link to="#" className="btn btn-dark">
-                      Shop Now <i className="fa fa-arrow-right ms-1" />
-                    </Link>
-                  </div>
-                  <img
-                    src={assortment}
-                    alt="assortment"
-                    className="img-fluid rounded-3"
-                  />
-                </div>
               </div>
 
-              {/* ------- PRODUCT GRID ------- */}
+              {/* RIGHT SIDE PRODUCTS */}
               <div className="col-lg-9 col-md-8">
                 <div className="card mb-4 bg-light border-0">
                   <div className="card-body p-4">
-                    <h1 className="mb-0">Snacks & Munchies</h1>
+                    <h1 className="mb-0">{selectedCategory}</h1>
                   </div>
                 </div>
 
@@ -186,56 +154,29 @@ function Dropdown() {
                           <h6 className="fw-bold mt-2">{p.name}</h6>
                           <p className="fw-bold text-success">₹{p.price}</p>
 
-                          <Link
-                            to={`/product/${p._id}`}
-                            className="btn btn-primary btn-sm w-100"
-                          >
-                            View Product
-                          </Link>
+                          <div className="d-grid gap-2">
+                            <button
+                              className="btn btn-success btn-sm"
+                              onClick={() => addToCart(p)}
+                            >
+                              Add to Cart
+                            </button>
+
+                            <button
+                              className="btn btn-warning btn-sm"
+                              onClick={() => buyNow(p)}
+                            >
+                              Buy Now
+                            </button>
+
+
+                          </div>
 
                         </div>
                       </div>
                     ))
                   )}
                 </div>
-
-                {/* Pagination UI (static for now) */}
-                <div className="row mt-4">
-                  <div className="col">
-                    <nav>
-                      <ul className="pagination">
-                        <li className="page-item disabled">
-                          <Link className="page-link" to="#">
-                            <i className="fa fa-chevron-left" />
-                          </Link>
-                        </li>
-
-                        <li className="page-item active">
-                          <Link className="page-link" to="#">1</Link>
-                        </li>
-
-                        <li className="page-item">
-                          <Link className="page-link" to="#">2</Link>
-                        </li>
-
-                        <li className="page-item">
-                          <Link className="page-link" to="#">...</Link>
-                        </li>
-
-                        <li className="page-item">
-                          <Link className="page-link" to="#">12</Link>
-                        </li>
-
-                        <li className="page-item">
-                          <Link className="page-link" to="#">
-                            <i className="fa fa-chevron-right" />
-                          </Link>
-                        </li>
-                      </ul>
-                    </nav>
-                  </div>
-                </div>
-
               </div>
 
             </div>
@@ -246,45 +187,21 @@ function Dropdown() {
   );
 }
 
+export default Dropdown;
+
+
+// ⭐ SIDE BAR CATEGORY DATA
 const dropdownData = [
   {
     title: "Dairy, Bread & Eggs",
-    items: [
-      "Milk",
-      "Curd & Yogurt",
-      "Eggs",
-      "Bread",
-      "Butter & More",
-      "Cheese",
-      "Cream & Whitener",
-      "Condensed Milk",
-      "Vegan Drinks",
-    ],
+    items: ["Milk", "Curd & Yogurt", "Eggs", "Bread", "Butter & More"],
   },
   {
     title: "Snacks & Munchies",
-    items: [
-      "Chips & Crisps",
-      "Bhujia & Mixtures",
-      "Healthy Snacks",
-      "Cakes & Rolls",
-      "Energy Bars",
-      "Papad & Fryums",
-      "Rusks & Wafers",
-    ],
+    items: ["Chips & Crisps", "Bhujia & Mixtures", "Healthy Snacks"],
   },
   {
     title: "Fruits & Vegetables",
-    items: [
-      "Fresh Vegetables",
-      "Herbs & Seasonings",
-      "Fresh Fruits",
-      "Organic Veggies",
-      "Cuts & Sprouts",
-      "Exotic Fruits",
-      "Flower Bouquets",
-    ],
+    items: ["Fresh Vegetables", "Fresh Fruits", "Organic Veggies"],
   },
 ];
-
-export default Dropdown;

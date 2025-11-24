@@ -1,28 +1,39 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MagnifyingGlass } from "react-loader-spinner";
 import ScrollToTop from "../ScrollToTop";
 import axios from "axios";
 import Swal from "sweetalert2";
 
-const USER_ID = "12345"; // Replace after login system
-// Set backend base URL
 axios.defaults.baseURL = "http://localhost:5000";
 
-const ShopCart = () => {
-  const [loaderStatus, setLoaderStatus] = useState(true);
+const USER_ID = "12345"; // change after login
 
+const ShopCart = () => {
+  const navigate = useNavigate();
+
+  const [loaderStatus, setLoaderStatus] = useState(true);
   const [cart, setCart] = useState({
     items: [],
     totalAmount: 0,
   });
 
-  // -------------------------------------------
-  // Load Cart
-  // -------------------------------------------
+  // -----------------------------
+  // FORMAT IMAGE
+  // -----------------------------
+  const getImage = (img) => {
+    if (!img) return "";
+    return img.startsWith("http")
+      ? img
+      : `http://localhost:5000${img}`;
+  };
+
+  // -----------------------------
+  // LOAD CART
+  // -----------------------------
   const fetchCart = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/cart/${USER_ID}`);
+      const res = await axios.get(`/api/cart/${USER_ID}`);
       setCart(res.data);
     } catch (err) {
       console.log(err);
@@ -35,38 +46,41 @@ const ShopCart = () => {
     fetchCart();
   }, []);
 
-  // -------------------------------------------
-  // Remove Item
-  // -------------------------------------------
-  const removeItem = async (productId) => {
+  // -----------------------------
+  // REMOVE ITEM
+  // -----------------------------
+  const removeItem = async (pid) => {
     try {
-      const res = await axios.post("http://localhost:5000/api/cart/remove", {
+      const res = await axios.post(`/api/cart/remove`, {
         userId: USER_ID,
-        productId,
+        productId: pid,
       });
 
       setCart(res.data);
 
       Swal.fire({
         icon: "success",
-        title: "Removed from Cart",
+        title: "Item Removed",
         timer: 1000,
+        showConfirmButton: false,
       });
     } catch (err) {
       console.log(err);
     }
   };
+  const [discount, setDiscount] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
 
-  // -------------------------------------------
-  // Update Quantity
-  // -------------------------------------------
-  const updateQuantity = async (productId, qty) => {
+  // -----------------------------
+  // UPDATE QTY
+  // -----------------------------
+  const updateQuantity = async (pid, qty) => {
     if (qty < 1 || qty > 10) return;
 
     try {
-      const res = await axios.post("http://localhost:5000/api/cart/update", {
+      const res = await axios.post(`/api/cart/update`, {
         userId: USER_ID,
-        productId,
+        productId: pid,
         qty,
       });
 
@@ -76,35 +90,52 @@ const ShopCart = () => {
     }
   };
 
-  // -------------------------------------------
-  // Add to Wishlist
-  // -------------------------------------------
+  // -----------------------------
+  // ADD TO WISHLIST
+  // -----------------------------
   const handleAddToWishlist = async (item) => {
     try {
-      await axios.post("http://localhost:5000/api/wishlist/add", {
+      await axios.post(`/api/wishlist/add`, {
         userId: USER_ID,
         productId: item.productId._id,
         name: item.productId.name,
         category: item.productId.category,
         price: item.productId.price,
-        image: item.productId.image,
+        image: item.productId.images?.[0], // FIXED
       });
 
       Swal.fire({
         icon: "success",
         title: "Added to Wishlist",
-        timer: 1500,
+        timer: 1200,
+        showConfirmButton: false,
       });
     } catch (err) {
       console.log(err);
     }
   };
 
+  // -----------------------------
   // LOADING
+  // -----------------------------
   if (loaderStatus) {
     return (
       <div className="loader-container">
         <MagnifyingGlass height="100" width="100" color="#0aad0a" />
+      </div>
+    );
+  }
+
+  // -----------------------------
+  // EMPTY CART UI
+  // -----------------------------
+  if (cart.items.length === 0) {
+    return (
+      <div className="container text-center py-5">
+        <h2>Your Cart is Empty 😕</h2>
+        <Link to="/shop" className="btn btn-primary mt-3">
+          Start Shopping
+        </Link>
       </div>
     );
   }
@@ -117,101 +148,98 @@ const ShopCart = () => {
         <div className="container">
 
           {/* Heading */}
-          <div className="row">
-            <div className="col-12">
-              <h1 className="fw-bold">Shop Cart</h1>
-              <p className="mb-0">Shopping in 382480</p>
-            </div>
-          </div>
+          <h1 className="fw-bold">Shop Cart</h1>
+          <p className="mb-4">Shopping in 382480</p>
 
           <div className="row">
-            {/* CART ITEMS */}
+
+            {/* LEFT — ITEMS */}
             <div className="col-lg-8 col-md-7">
-              <div className="py-3">
-                <ul className="list-group list-group-flush">
-                  {(cart.items || []).map((item) => (
-                    <li key={item.productId._id} className="list-group-item py-3 px-0 border-top">
-                      <div className="row align-items-center">
+              <ul className="list-group list-group-flush">
+                {cart.items.map((item) => (
+                  <li key={item.productId._id} className="list-group-item py-3 px-0 border-top">
+                    <div className="row align-items-center">
 
-                        {/* IMAGE */}
-                        <div className="col-3 col-md-2">
-                          <img src={item.productId.image} alt={item.productId.name} className="img-fluid" />
-                        </div>
+                      {/* IMAGE */}
+                      <div className="col-3 col-md-2">
+                        <img
+                          src={getImage(item.productId.images?.[0])}
+                          alt={item.productId.name}
+                          className="img-fluid rounded"
+                        />
+                      </div>
 
-                        {/* DETAILS */}
-                        <div className="col-4 col-md-6">
-                          <h6 className="mb-0">{item.productId.name}</h6>
-                          <small className="text-muted">{item.productId.category}</small>
+                      {/* DETAILS */}
+                      <div className="col-4 col-md-6">
+                        <h6>{item.productId.name}</h6>
+                        <small className="text-muted">{item.productId.category}</small>
 
-                          <div className="mt-2 small">
-                            <button
-                              className="btn btn-link text-danger p-0"
-                              onClick={() => removeItem(item.productId._id)}
-                            >
-                              Remove
-                            </button>
+                        <div className="mt-2 small">
+                          <button
+                            className="btn btn-link text-danger p-0"
+                            onClick={() => removeItem(item.productId._id)}
+                          >
+                            Remove
+                          </button>
 
-                            <button
-                              className="btn btn-warning btn-sm ms-2"
-                              onClick={() => handleAddToWishlist(item)}
-                            >
-                              Wishlist
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* QUANTITY */}
-                        <div className="col-3 col-md-3 col-lg-2">
-                          <div className="input-group justify-content-center">
-
-                            <button
-                              className="btn btn-light"
-                              onClick={() =>
-                                updateQuantity(item.productId._id, item.qty - 1)
-                              }
-                            >
-                              -
-                            </button>
-
-                            <input
-                              type="number"
-                              value={item.qty}
-                              className="form-control text-center"
-                              min="1"
-                              max="10"
-                              onChange={(e) =>
-                                updateQuantity(item.productId._id, Number(e.target.value))
-                              }
-                            />
-
-                            <button
-                              className="btn btn-light"
-                              onClick={() =>
-                                updateQuantity(item.productId._id, item.qty + 1)
-                              }
-                            >
-                              +
-                            </button>
-
-                          </div>
-                        </div>
-
-                        {/* PRICE */}
-                        <div className="col-2 text-end">
-                          <span className="fw-bold">₹{item.price}</span>
+                          <button
+                            className="btn btn-warning btn-sm ms-2"
+                            onClick={() => handleAddToWishlist(item)}
+                          >
+                            Wishlist
+                          </button>
                         </div>
                       </div>
-                    </li>
-                  ))}
-                </ul>
 
-                {/* BUTTONS */}
-                <div className="d-flex justify-content-between mt-4">
-                  <Link to="/shop" className="btn btn-primary">
-                    Continue Shopping
-                  </Link>
-                  <button className="btn btn-dark">Update Cart</button>
-                </div>
+                      {/* QTY */}
+                      <div className="col-3 col-md-3 col-lg-2">
+                        <div className="input-group justify-content-center">
+                          <button
+                            className="btn btn-light"
+                            onClick={() => updateQuantity(item.productId._id, item.qty - 1)}
+                          >
+                            -
+                          </button>
+
+                          <input
+                            type="number"
+                            value={item.qty}
+                            className="form-control text-center"
+                            min="1"
+                            max="10"
+                            onChange={(e) =>
+                              updateQuantity(item.productId._id, Number(e.target.value))
+                            }
+                          />
+
+                          <button
+                            className="btn btn-light"
+                            onClick={() => updateQuantity(item.productId._id, item.qty + 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* PRICE */}
+                      <div className="col-2 text-end">
+                        <span className="fw-bold">₹{item.productId.price * item.qty}</span>
+                      </div>
+
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* BUTTONS */}
+              <div className="d-flex justify-content-between mt-4">
+                <Link to="/shop" className="btn btn-primary">
+                  Continue Shopping
+                </Link>
+
+                <button className="btn btn-dark" onClick={fetchCart}>
+                  Refresh Cart
+                </button>
               </div>
             </div>
 
@@ -222,20 +250,44 @@ const ShopCart = () => {
 
                 <ul className="list-group list-group-flush mb-3">
                   <li className="list-group-item d-flex justify-content-between">
-                    <span>Item Subtotal</span>
+                    <span>Items Total</span>
                     <span>₹{cart.totalAmount}</span>
                   </li>
 
                   <li className="list-group-item d-flex justify-content-between">
-                    <span className="fw-bold">Subtotal</span>
-                    <span className="fw-bold">₹{cart.totalAmount}</span>
+                    <span>Subtotal</span>
+                    <span>₹{cart.totalAmount}</span>
                   </li>
+
+                  {discount > 0 && (
+                    <li className="list-group-item d-flex justify-content-between text-success">
+                      <span>Discount ({appliedCoupon})</span>
+                      <span>-₹{discount}</span>
+                    </li>
+                  )}
+
+                  <li className="list-group-item d-flex justify-content-between">
+                    <span className="fw-bold">Total</span>
+                    <span className="fw-bold">₹{cart.totalAmount - discount}</span>
+                  </li>
+
+
+                  <li className="list-group-item d-flex justify-content-between">
+                    <span className="fw-bold">Total</span>
+                    <span className="fw-bold">₹{cart.totalAmount - discount}</span>
+                  </li>
+
                 </ul>
 
                 <div className="d-grid">
-                  <Link to="/shopcheckout" className="btn btn-primary btn-lg">
-                    Go to Checkout ₹{cart.totalAmount}
+                  <Link
+                    to="/shopcheckout"
+                    state={{ appliedCoupon, discount }}
+                    className="btn btn-primary btn-lg"
+                  >
+                    Go to Checkout ₹{cart.totalAmount - discount}
                   </Link>
+
                 </div>
 
                 <p className="mt-2 text-muted small">

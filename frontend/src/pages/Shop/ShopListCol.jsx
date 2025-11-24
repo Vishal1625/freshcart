@@ -7,8 +7,9 @@ import { MagnifyingGlass } from "react-loader-spinner";
 // Images
 import assortment from "../../images/assortment-citrus-fruits.png";
 import productimg1 from "../../images/product-img-1.jpg";
-// Set backend base URL
+
 axios.defaults.baseURL = "http://localhost:5000";
+
 // Dropdown Data
 const dropdownData = [
   {
@@ -74,6 +75,7 @@ const dropdownData = [
 const ShopListCol = () => {
   const [loaderStatus, setLoaderStatus] = useState(true);
   const [products, setProducts] = useState([]);
+  const [openDropdowns, setOpenDropdowns] = useState([]);
 
   // Loader timeout
   useEffect(() => {
@@ -82,7 +84,7 @@ const ShopListCol = () => {
     }, 1200);
   }, []);
 
-  // Fetch API products
+  // Product Fetch
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -96,18 +98,18 @@ const ShopListCol = () => {
     };
 
     fetchProducts();
-  }, []);
+  }, []); // ✅ No selectedCategory, no warning
 
-  // Dropdown menu state
-  const [openDropdowns, setOpenDropdowns] = useState([]);
-
+  // Dropdown open/close
   const toggleDropdown = (index) => {
-    if (openDropdowns.includes(index)) {
-      setOpenDropdowns(openDropdowns.filter((item) => item !== index));
-    } else {
-      setOpenDropdowns([...openDropdowns, index]);
-    }
+    setOpenDropdowns((prev) =>
+      prev.includes(index)
+        ? prev.filter((i) => i !== index)
+        : [...prev, index]
+    );
   };
+
+  // Fetch addresses (optional)
   useEffect(() => {
     const fetchAddresses = async () => {
       try {
@@ -121,148 +123,140 @@ const ShopListCol = () => {
     fetchAddresses();
   }, []);
 
-
   return (
     <>
-      <div>
-        <div className="container">
-          <div className="row fixed-side">
-            {/* ====================================
-                LEFT CATEGORY SIDEBAR
-            ======================================= */}
-            <h5 className="mb-3 mt-8">Categories</h5>
-            <div className="col-md-3">
-              {dropdownData.map((dropdown, index) => (
-                <ul className="nav flex-column" key={index}>
-                  <li className="nav-item">
-                    <Link
-                      className="nav-link"
-                      to="#"
-                      onClick={() => toggleDropdown(index)}
-                    >
-                      {dropdown.title} <i className="fa fa-chevron-down" />
-                    </Link>
+      <div className="container">
+        <div className="row fixed-side">
+          <h5 className="mb-3 mt-4">Categories</h5>
 
-                    <div
-                      className={`collapse ${openDropdowns.includes(index) ? "show" : ""
-                        }`}
-                    >
-                      <ul className="nav flex-column ms-3">
-                        {dropdown.items.map((item, idx) => (
-                          <li className="nav-item" key={idx}>
-                            <Link className="nav-link" to="#">
-                              {item}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </li>
-                </ul>
-              ))}
+          {/* LEFT SIDE */}
+          <div className="col-md-3">
+            {dropdownData.map((dropdown, index) => (
+              <ul className="nav flex-column" key={index}>
+                <li className="nav-item">
+                  <button
+                    className="nav-link btn btn-link"
+                    onClick={() => toggleDropdown(index)}
+                  >
+                    {dropdown.title} <i className="fa fa-chevron-down" />
+                  </button>
 
-              <div className="py-4">
-                <h5 className="mb-3">Stores</h5>
-                <input
-                  type="search"
-                  className="form-control"
-                  placeholder="Search by store"
-                />
-              </div>
+                  <div
+                    className={`collapse ${openDropdowns.includes(index) ? "show" : ""
+                      }`}
+                  >
+                    <ul className="nav flex-column ms-3">
+                      {dropdown.items.map((item, idx) => (
+                        <li className="nav-item" key={idx}>
+                          <button className="nav-link btn btn-link">{item}</button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </li>
+              </ul>
+            ))}
 
-              {/* Banner */}
-              <div className="py-4 position-relative">
-                <div className="position-absolute p-5 py-8">
-                  <h3 className="mb-0">Fresh Fruits</h3>
-                  <p>Get Upto 25% Off</p>
-                  <Link to="#" className="btn btn-dark">
-                    Shop Now
-                  </Link>
-                </div>
-                <img src={assortment} alt="Banner" className="img-fluid rounded-3" />
-              </div>
+            <div className="py-4">
+              <h5 className="mb-3">Stores</h5>
+              <input
+                type="search"
+                className="form-control"
+                placeholder="Search by store"
+              />
             </div>
 
-            {/* ====================================
-                RIGHT PRODUCT LISTING AREA
-            ======================================= */}
-            <div className="col-lg-9 col-md-8">
-              {loaderStatus ? (
-                <div className="loader-container text-center">
-                  <MagnifyingGlass
-                    visible={true}
-                    height="100"
-                    width="100"
-                    color="#0aad0a"
-                  />
-                </div>
-              ) : (
-                <>
-                  {/* Header */}
-                  <div className="card mb-4 bg-light border-0">
-                    <div className="card-body p-9">
-                      <h1 className="mb-0">Snacks & Munchies</h1>
-                    </div>
+            {/* Banner */}
+            <div className="py-4 position-relative">
+              <div className="position-absolute p-5 py-8">
+                <h3 className="mb-0">Fresh Fruits</h3>
+                <p>Get Upto 25% Off</p>
+                <Link to="#" className="btn btn-dark">
+                  Shop Now
+                </Link>
+              </div>
+              <img src={assortment} alt="" className="img-fluid rounded-3" />
+            </div>
+          </div>
+
+          {/* RIGHT SIDE */}
+          <div className="col-lg-9 col-md-8">
+            {loaderStatus ? (
+              <div className="loader-container text-center">
+                <MagnifyingGlass
+                  visible={true}
+                  height="100"
+                  width="100"
+                  color="#0aad0a"
+                />
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="card mb-4 bg-light border-0">
+                  <div className="card-body p-9">
+                    <h1 className="mb-0">Snacks & Munchies</h1>
                   </div>
+                </div>
 
-                  {/* Product Found */}
-                  <p className="mb-3">
-                    <span className="text-dark">{products.length}</span> Products found
-                  </p>
+                {/* Product count */}
+                <p className="mb-3">
+                  <span className="text-dark">{products.length}</span>{" "}
+                  Products found
+                </p>
 
-                  {/* Product List */}
-                  <div className="row g-4 row-cols-1 mt-2">
-                    {products.map((product) => (
-                      <div className="col" key={product._id}>
-                        <div className="card card-product">
-                          <div className="card-body">
-                            <div className="row align-items-center">
-                              <div className="col-md-4 text-center">
-                                <img
-                                  src={product.image || productimg1}
-                                  className="img-fluid"
-                                  alt={product.name}
-                                />
-                              </div>
+                {/* Products */}
+                <div className="row g-4 row-cols-1 mt-2">
+                  {products.map((product) => (
+                    <div className="col" key={product._id}>
+                      <div className="card card-product">
+                        <div className="card-body">
+                          <div className="row align-items-center">
+                            <div className="col-md-4 text-center">
+                              <img
+                                src={product.image || productimg1}
+                                className="img-fluid"
+                                alt={product.name}
+                              />
+                            </div>
 
-                              <div className="col-md-8">
-                                <h5>{product.name}</h5>
-                                <p className="text-muted small">
-                                  {product.description?.slice(0, 40)}...
-                                </p>
+                            <div className="col-md-8">
+                              <h5>{product.name}</h5>
+                              <p className="text-muted small">
+                                {product.description?.slice(0, 40)}...
+                              </p>
 
-                                <h6 className="text-dark">₹{product.price}</h6>
+                              <h6 className="text-dark">₹{product.price}</h6>
 
-                                <Link className="btn btn-primary btn-sm mt-2">
-                                  Add to Cart
-                                </Link>
-                              </div>
+                              <Link className="btn btn-primary btn-sm mt-2">
+                                Add to Cart
+                              </Link>
                             </div>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  <div className="row mt-8">
-                    <div className="col text-center">
-                      <ul className="pagination justify-content-center">
-                        <li className="page-item active">
-                          <Link className="page-link">1</Link>
-                        </li>
-                        <li className="page-item">
-                          <Link className="page-link">2</Link>
-                        </li>
-                        <li className="page-item">
-                          <Link className="page-link">3</Link>
-                        </li>
-                      </ul>
                     </div>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                <div className="row mt-8">
+                  <div className="col text-center">
+                    <ul className="pagination justify-content-center">
+                      <li className="page-item active">
+                        <Link className="page-link">1</Link>
+                      </li>
+                      <li className="page-item">
+                        <Link className="page-link">2</Link>
+                      </li>
+                      <li className="page-item">
+                        <Link className="page-link">3</Link>
+                      </li>
+                    </ul>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

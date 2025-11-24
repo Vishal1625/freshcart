@@ -9,6 +9,7 @@ import Register from "./pages/Register.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import OrderDetail from "./pages/OrderDetail";
 
 import Dashboard from "./pages/Dashboard.jsx";
 import Analytics from "./pages/Analytics.jsx";
@@ -39,6 +40,7 @@ const App = () => {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/orders/:id" element={<OrderDetail />} />
 
             {/* Protected routes */}
             <Route

@@ -4,6 +4,12 @@ import mongoose from "mongoose";
    ORDER ITEM SCHEMA
 =========================== */
 const OrderItemSchema = new mongoose.Schema({
+  orderId: { type: String, required: true, unique: true },
+
+  userId: { type: String, required: true },
+  customerName: String,
+  mobile: String,
+
   productId: String,
   name: { type: String, required: true },
   qty: { type: Number, required: true },
@@ -39,7 +45,7 @@ const DeliverySchema = new mongoose.Schema({
 const OrderSchema = new mongoose.Schema(
   {
     orderId: { type: String, required: true, unique: true },
-
+    userId: { type: String, required: true },
     /* CUSTOMER DETAILS */
     customerName: String,
     email: String,
@@ -53,33 +59,70 @@ const OrderSchema = new mongoose.Schema(
       city: String,
       state: String,
       zipcode: String,
+      lat: Number,  // for heatmap
+      lng: Number,
     },
 
     /* ORDER ITEMS */
-    items: [OrderItemSchema],
+    items: [
+      {
+        productId: mongoose.Schema.Types.ObjectId,
+        name: String,
+        qty: Number,
+        price: Number,
+      }
+    ],
 
     /* PRICE */
     subtotal: Number,
     shipping: Number,
     tax: Number,
     total: Number,
-
+    discount: { type: Number, default: 0 },
+    appliedOfferCode: String,
     /* PAYMENT */
-    paymentMethod: { type: String, default: "COD" },
-    paymentStatus: { type: String, default: "Pending" },
+    paymentMethod: {
+      type: String, //cod/upi/card},
+      paymentStatus: { type: String, default: "Pending" },
+      transactionId: String,
+      /* STATUS */
+      status: {
+        type: String,
+        enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
+        default: "Pending",
+      },
+      address: {
+        firstName: String,
+        lastName: String,
+        addressLine1: String,
+        addressLine2: String,
+        city: String,
+        state: String,
+        zipcode: String,
+      },
 
-    /* STATUS */
-    status: {
-      type: String,
-      enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
-      default: "Pending",
+      instruction: { type: String, default: "" },
+
+      status: {
+        type: String,
+        default: "Pending", // Pending → Processing → Shipped → Delivered
+      },
+      deliveryAgent: { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryAgent" },
+
+      createdAt: { type: Date, default: Date.now },
+      deliveredDate: Date
     },
-
+    appliedOfferCode: String,
     orderDate: { type: Date, default: Date.now },
     deliveredDate: Date,
+    instruction: String,
 
     /* TIMELINE */
-    timeline: [TimelineSchema],
+    timeline: [{
+      status: String,
+      note: String,
+      createdAt: { type: Date, default: Date.now },
+    },],
 
     /* DELIVERY INFO */
     delivery: DeliverySchema,

@@ -1,11 +1,13 @@
-
 import React, { useEffect, useState } from 'react'
+import axios from "axios";                  // ⭐ FIX: axios import added
 import Sidebar from '../components/Sidebar'
 import Topbar from '../components/Topbar'
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip,
     ResponsiveContainer
 } from 'recharts'
+
+axios.defaults.baseURL = "http://localhost:5000";   // ⭐ FIX: now axios import exists
 
 export default function Analytics() {
 
@@ -16,6 +18,7 @@ export default function Analytics() {
         fetch("http://localhost:5000/api/analytics/revenue-daily")
             .then(res => res.json())
             .then(data => setData(data))
+            .catch(err => console.error("Analytics fetch error:", err))
     }, [])
 
     const doLogout = () => {
@@ -47,7 +50,6 @@ export default function Analytics() {
 
                     </div>
                 </div>
-
             </div>
         </div>
     )

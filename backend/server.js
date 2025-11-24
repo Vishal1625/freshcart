@@ -8,6 +8,7 @@ import http from "http";
 import { Server as IOServer } from "socket.io";
 import fs from "fs";
 import connectDB from "./config/db.js";
+import offerRoutes from "./routes/offerRoutes.js";
 
 // Import routes
 import productRoutes from "./routes/productRoutes.js";
@@ -81,6 +82,8 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/otp", otpRoutes);
 app.use("/api/checkout", checkoutRoutes);
+app.use("/api/offers", offerRoutes);
+
 
 // ==================== ROOT ROUTE ====================
 app.get("/", (req, res) => {

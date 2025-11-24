@@ -21,14 +21,14 @@ const userSchema = new mongoose.Schema(
     name: { type: String },
     email: { type: String, unique: true },
     phone: { type: String, required: true, unique: true },
-
+    passwordHash: { type: String, required: true },
     password: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
     // Role management
     role: {
       type: String,
-      default: "user",
-      enum: ["admin", "manager", "editor", "user"]
+      enum: ["customer", "admin", "delivery"],
+      default: "customer",
     },
 
     refreshToken: { type: String },

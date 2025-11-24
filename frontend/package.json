@@ -1,17 +1,23 @@
 {
-  "name": "ngo-react",
-  "homepage": "https://vishal1625.github.io/Grocery-react",
+  "name": "frontend",
   "version": "0.1.0",
   "private": true,
   "proxy": "http://localhost:5000",
+  "description": "Grocery React",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.2",
     "@popperjs/core": "^2.11.8",
+    "@react-google-maps/api": "^2.20.7",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.13.2",
     "bootstrap": "^5.3.8",
+    "canvas-confetti": "^1.9.4",
     "express": "^5.1.0",
     "framer-motion": "^12.23.24",
     "gh-pages": "^6.1.1",
@@ -60,10 +66,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "description": "<h1 align=\"center\"> Grocery React</h1>",
-  "main": "index.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  }
 }

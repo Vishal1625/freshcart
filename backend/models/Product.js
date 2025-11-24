@@ -14,7 +14,7 @@ const productSchema = new mongoose.Schema(
     price: { type: Number, required: true, default: 0 },
     mrp: { type: Number, default: 0 },
     stock: { type: Number, default: 0 },
-
+    offer: { type: mongoose.Schema.Types.ObjectId, ref: "Offer", default: null }, // optional
     sku: { type: String, default: "", trim: true },
 
     images: [{ type: String }], // e.g. /uploads/products/xyz.jpg

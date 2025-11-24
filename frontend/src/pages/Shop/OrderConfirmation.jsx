@@ -1,194 +1,136 @@
-
 // src/pages/Shop/OrderConfirmation.jsx
+
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import ScrollToTop from "../ScrollToTop";
+import confetti from "canvas-confetti";
 
-/* ---------------------------------------
-   If backend runs on PORT 5000,  
-   set Axios baseURL globally here
------------------------------------------ */
+// Base URL
 axios.defaults.baseURL = "http://localhost:5000";
-
-/*
-Fallback demo order (if no order found)
-*/
-const demoOrder = {
-    _id: "ORD123456",
-    user: "USER123",
-    items: [
-        { name: "Haldiram's Sev Bhujia", qty: 1, price: 50 },
-        { name: "NutriChoice Digestive", qty: 1, price: 20 },
-        { name: "5 Star Chocolate", qty: 1, price: 15 },
-    ],
-    subtotal: 85,
-    shipping: 5,
-    tax: 0,
-    total: 90,
-    address: {
-        firstName: "Vishal",
-        lastName: "Kumar",
-        addressLine1: "123 Main St",
-        city: "Ahmedabad",
-        state: "Gujarat",
-        zipcode: "380015",
-    },
-    status: "Order Placed",
-    createdAt: new Date().toISOString(),
-};
 
 export default function OrderConfirmation() {
     const navigate = useNavigate();
     const location = useLocation();
     const orderIdFromState = location.state?.orderId;
+
     const [order, setOrder] = useState(null);
     const [sendingEmail, setSendingEmail] = useState(false);
 
-    // Fetch order
+    // -------------------------------
+    // Fetch Order
+    // -------------------------------
     useEffect(() => {
+        if (!orderIdFromState) {
+            navigate("/shop");
+            return;
+        }
+
         const fetchOrder = async () => {
-            if (orderIdFromState) {
-                try {
-                    const res = await axios.get(`/api/orders/${orderIdFromState}`);
-                    setOrder(res.data.order);
-                } catch (err) {
-                    console.error("Order fetch error:", err);
-                    setOrder(demoOrder);
-                }
-            } else {
-                setOrder(demoOrder);
+            try {
+                const res = await axios.get(`/api/orders/${orderIdFromState}`);
+                setOrder(res.data.order);
+
+                // Celebration Effect
+                setTimeout(() => {
+                    confetti({ particleCount: 200, spread: 80 });
+                }, 800);
+
+            } catch (err) {
+                console.error("Order fetch error:", err);
             }
         };
 
         fetchOrder();
     }, [orderIdFromState]);
 
+    // -------------------------------
     // Download Invoice
+    // -------------------------------
     const handleDownloadInvoice = () => {
-        const invoiceHtml = generateInvoiceHtml(order || demoOrder);
-        const popup = window.open("", "_blank");
-        popup.document.write(invoiceHtml);
-        popup.document.close();
-        popup.focus();
+        window.open(`/api/orders/invoice/${order._id}`, "_blank");
     };
 
-    const generateInvoiceHtml = (o) => {
-        const rows = (o.items || [])
-            .map(
-                (it) => `
-        <tr>
-          <td style="padding:8px;border:1px solid #ddd">${it.name}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:center">${it.qty}</td>
-          <td style="padding:8px;border:1px solid #ddd;text-align:right">₹${it.price}</td>
-        </tr>
-      `
-            )
-            .join("");
-
-        return `
-      <html>
-      <head><title>Invoice - ${o._id}</title></head>
-      <body style="font-family:Arial;margin:20px;">
-        <h2>Invoice</h2>
-        <p>Order ID: <strong>${o._id}</strong></p>
-
-        <table style="border-collapse:collapse;width:100%;max-width:700px">
-          <thead>
-            <tr>
-              <th style="padding:8px;border:1px solid #ddd;text-align:left">Item</th>
-              <th style="padding:8px;border:1px solid #ddd">Qty</th>
-              <th style="padding:8px;border:1px solid #ddd;text-align:right">Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-            <tr>
-              <td colspan="2" style="padding:8px;border:1px solid #ddd;text-align:right">Subtotal</td>
-              <td style="padding:8px;border:1px solid #ddd;text-align:right">₹${o.subtotal}</td>
-            </tr>
-            <tr>
-              <td colspan="2" style="padding:8px;border:1px solid #ddd;text-align:right">Shipping</td>
-              <td style="padding:8px;border:1px solid #ddd;text-align:right">₹${o.shipping}</td>
-            </tr>
-            <tr>
-              <td colspan="2" style="padding:8px;border:1px solid #ddd;text-align:right"><strong>Total</strong></td>
-              <td style="padding:8px;border:1px solid #ddd;text-align:right"><strong>₹${o.total}</strong></td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h4>Delivery Address</h4>
-        <p>${o.address.firstName} ${o.address.lastName}<br/>
-        ${o.address.addressLine1}<br/>
-        ${o.address.city}, ${o.address.state} - ${o.address.zipcode}</p>
-
-        <script>setTimeout(() => { window.print(); }, 500);</script>
-      </body>
-      </html>
-    `;
-    };
-
-    // Send confirmation email
+    // -------------------------------
+    // Email Confirmation
+    // -------------------------------
     const handleSendEmail = async () => {
-        if (!order) return;
-
-        setSendingEmail(true);
         try {
+            setSendingEmail(true);
             await axios.post("/api/orders/send-confirmation-email", {
                 orderId: order._id,
             });
-            alert("Confirmation email sent!");
+            alert("Email sent successfully!");
         } catch (err) {
-            console.error("Email sending error:", err);
-            alert("Failed to send email.");
+            alert("Failed to send email");
         } finally {
             setSendingEmail(false);
         }
     };
 
+    // -------------------------------
+    // Re-order Feature
+    // -------------------------------
+    const handleReOrder = async () => {
+        try {
+            await axios.post("/api/orders/reorder", {
+                orderId: order._id,
+            });
+            alert("Items added to cart!");
+            navigate("/shopcart");
+        } catch (err) {
+            console.log(err);
+        }
+    };
+
     if (!order) {
         return (
-            <div className="container my-5 text-center">
+            <div className="container text-center my-5">
                 <ScrollToTop />
-                <p>Loading order...</p>
+                <p>Loading your order...</p>
             </div>
         );
     }
+
+    const estDelivery = new Date();
+    estDelivery.setDate(estDelivery.getDate() + 3);
 
     return (
         <div className="container my-5">
             <ScrollToTop />
 
+            {/* Success Icon */}
             <div className="text-center mb-4">
                 <img
                     src="https://cdn-icons-png.flaticon.com/512/190/190411.png"
-                    width={96}
+                    width={90}
                     alt="success"
                 />
-                <h2 className="mt-3 text-success">Order Confirmed</h2>
+                <h2 className="text-success mt-3">Order Confirmed 🎉</h2>
                 <p className="text-muted">
                     Order ID: <strong>#{order._id}</strong>
+                </p>
+                <p className="text-primary">
+                    Estimated Delivery: <strong>{estDelivery.toDateString()}</strong>
                 </p>
             </div>
 
             <div className="row g-4">
                 {/* Left Section */}
                 <div className="col-md-7">
-                    <div className="card p-3 mb-3">
-                        <h5>Items</h5>
+
+                    {/* Items Card */}
+                    <div className="card p-3 mb-3 shadow-sm">
+                        <h5>Order Items</h5>
                         <ul className="list-group">
-                            {(order.items || []).map((it, idx) => (
-                                <li
-                                    key={idx}
-                                    className="list-group-item d-flex justify-content-between"
-                                >
+                            {order.items.map((item, index) => (
+                                <li key={index} className="list-group-item d-flex justify-content-between">
                                     <div>
-                                        <strong>{it.name}</strong>
+                                        <strong>{item.name}</strong>
                                         <br />
-                                        <small className="text-muted">Qty: {it.qty}</small>
+                                        <small className="text-muted">Qty: {item.qty}</small>
                                     </div>
-                                    <div>₹{it.price}</div>
+                                    <div>₹{item.price}</div>
                                 </li>
                             ))}
                         </ul>
@@ -202,38 +144,30 @@ export default function OrderConfirmation() {
                         </div>
                     </div>
 
-                    <div className="card p-3">
+                    {/* Address Card */}
+                    <div className="card p-3 shadow-sm">
                         <h5>Delivery Address</h5>
-                        <p>
-                            {order.address.firstName} {order.address.lastName}
-                            <br />
-                            {order.address.addressLine1}
-                            <br />
-                            {order.address.city}, {order.address.state} -{" "}
-                            {order.address.zipcode}
+                        <p className="mb-0">
+                            {order.address.firstName} {order.address.lastName} <br />
+                            {order.address.addressLine1} <br />
+                            {order.address.city}, {order.address.state} - {order.address.zipcode}
                         </p>
                     </div>
                 </div>
 
                 {/* Right Section */}
                 <div className="col-md-5">
-                    <div className="card p-3 mb-3 text-center">
-                        <h5 className="mb-2">Next Steps</h5>
+
+                    {/* Action Buttons */}
+                    <div className="card p-3 mb-3 text-center shadow-sm">
+                        <h5>Next Steps</h5>
 
                         <div className="d-grid gap-2">
-                            <button
-                                className="btn btn-outline-primary"
-                                onClick={handleDownloadInvoice}
-                            >
-                                Download / Print Invoice
+                            <button className="btn btn-outline-primary" onClick={handleDownloadInvoice}>
+                                Download Invoice (PDF)
                             </button>
 
-                            <button
-                                className="btn btn-outline-secondary"
-                                onClick={() =>
-                                    navigate(`/track-order?orderId=${order._id}`)
-                                }
-                            >
+                            <button className="btn btn-outline-secondary" onClick={() => navigate(`/track-order/${order._id}`)}>
                                 Track Order
                             </button>
 
@@ -242,29 +176,47 @@ export default function OrderConfirmation() {
                                 onClick={handleSendEmail}
                                 disabled={sendingEmail}
                             >
-                                {sendingEmail ? "Sending..." : "Send Confirmation Email"}
+                                {sendingEmail ? "Sending Email..." : "Send Confirmation Email"}
                             </button>
 
-                            <Link to="/Shop" className="btn btn-light">
+                            <button className="btn btn-warning text-dark" onClick={handleReOrder}>
+                                Re-Order Items
+                            </button>
+
+                            <Link to="/shop" className="btn btn-light">
                                 Continue Shopping
                             </Link>
                         </div>
                     </div>
 
-                    <div className="card p-3">
-                        <h6>Status</h6>
-                        <div className="badge bg-info text-dark">{order.status}</div>
+                    {/* Status Card */}
+                    <div className="card p-3 shadow-sm">
+                        <h6>Order Status</h6>
+                        <span className="badge bg-info text-dark">{order.status}</span>
+
                         <p className="mt-2 text-muted">
-                            Placed: {new Date(order.createdAt).toLocaleString()}
+                            Placed on: {new Date(order.createdAt).toLocaleString()}
+                        </p>
+
+                        <h6 className="mt-3">Payment</h6>
+                        <p className="mb-1">
+                            Method: <strong>{order.paymentInfo?.method}</strong>
+                        </p>
+                        <p className="mb-0">
+                            Status:{" "}
+                            <span className="badge bg-success">{order.paymentInfo?.status}</span>
                         </p>
                     </div>
                 </div>
             </div>
 
             <style>{`
-        @keyframes pop {
-          from { transform: translateY(8px) scale(.98); opacity: 0 }
-          to { transform: translateY(0) scale(1); opacity: 1 }
+        .card {
+          animation: fadeIn .4s ease;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
         </div>
