@@ -3,7 +3,8 @@ import { getMonthlyStats } from "../controllers/analyticsController.js";
 
 const router = express.Router();
 router.get("/monthly", getMonthlyStats);
-
+router.get("/top-cities", authDelivery, getTopCities);
+router.get("/heatmap", authDelivery, getHeatmapData);
 /* --------------------------------------------------
    DAILY REVENUE ANALYTICS
    Example Output:
