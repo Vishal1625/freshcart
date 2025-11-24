@@ -19,7 +19,16 @@ import Users from "./pages/Users.jsx";
 import OrderStatusUpdate from "./pages/OrderStatusUpdate.jsx";
 
 const App = () => {
+axios.defaults.baseURL = "http://localhost:5000";
 
+    // AUTO ADD TOKEN
+    axios.interceptors.request.use((config) => {
+        const user = JSON.parse(localStorage.getItem("authUser") || "null");
+        if (user?.token) {
+            config.headers.Authorization = `Bearer ${authUser.token}`;
+        }
+        return config;
+    });
     useEffect(() => {
         const getData = async () => {
             try {
